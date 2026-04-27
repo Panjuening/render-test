@@ -1,59 +1,25 @@
 import { useState,useEffect } from 'react'
-import axios from 'axios'
-
-const Filter=({searchQuery,setSearchQuery})=>
-{
-return(
-<div>
-   <input 
-          value={searchQuery} 
-          onChange={(e)=>setSearchQuery(e.target.value)} 
-          placeholder="输入姓名搜索"
-        />
-    </div>
-)
-}
-
-const PersonForm=({addPerson,newName,newNumber,setNewName,setNewNumber})=>
-{
-return(
-  <form onSubmit={addPerson}>
-        <div>
-          name: <input value={newName} onChange={(e)=>setNewName(e.target.value)}/>
-          number: <input value={newNumber} onChange={(e)=>setNewNumber(e.target.value)}/>
-          <button type="submit">add</button>
-        </div>
-</form> 
-)
-}
-
-
- const Persons = ({ filteredPersons,toggleTrash }) => {
-  return (
-    <ul>
-      {filteredPersons.map(person => (
-        <li key={person.name}>{person.name} {person.number}
-        <button onClick={() =>toggleTrash(person.id)}>Go to Trash</button></li>
-      ))}
-    </ul>
-  );
-};
-
-
+import personService from './services/person'
+import Filter from './components/Filter'
+import PersonForm from './components/PersonForm'
+import Persons from './components/Persons'
+import Notification from './components/Notification'
+import ReNotification from './components/ReNotification'
+import './index.css'
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber,setNewNumber]=useState('')
 const [searchQuery, setSearchQuery] = useState('')
+const [suessceMessage, setSuessceMessage] = useState([])
+const [errorMessage, setErrorMessage] = useState([])
 
 useEffect(() => {
-    console.log('effect')
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        console.log('promise fulfilled')
-        setPersons(response.data)
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
       })
   }, [])
   console.log('render', persons.length, 'persons message')
@@ -70,29 +36,51 @@ const PersonObject = {
      if (nameExists) {
        if(window.confirm(`${newName} 已存在于电话簿中,是否需要替换?`))
        {
-        const url = `http://localhost:3001/persons/${PersonObject.id}`
         const person = persons.find(n => n.id === PersonObject.id)
-        const changedNote = { ...person, number: newNumber }
-        axios.put(url, changedNote).then(response => {
-    setPersons(persons.map(person => person.id === PersonObject.id ? response.data : person))
+        const changedPerson = { ...person, number: newNumber }
+         personService
+      .update(PersonObject.id, changedPerson)
+      .then(returnedPerson => {
+        setPersons(persons.map(person => person.id === PersonObject.id  ? returnedPerson : person))
          setNewName('')
-    setNewNumber('') 
-  })
+         setNewNumber('')
+         setSuessceMessage(
+          `已变更 ${newName}`
+        )
+        setTimeout(() => {
+          setSuessceMessage(null)
+        }, 5000)
+  }).catch(
+        setErrorMessage(
+          `变更失败,该${newName}的记录已被别人删除`
+        ),
+        setTimeout(() => {
+          setErrorMessage(null)
+        }, 5000)
+  )
+   
 
        }
-       else{alter('未替换')}
-
-
+       else{ 
+      alter("已取消替换")} 
       }
 
   
- axios
-    .post('http://localhost:3001/persons', PersonObject)
-    .then(response => {
-      setPersons(persons.concat(response.data))
-      console.log(response.data)
-      setNewName('')
-    setNewNumber('')})
+else{personService
+      .create(PersonObject)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+        setSuessceMessage(
+          `Added ${newName}`
+        )
+        setTimeout(() => {
+          setSuessceMessage(null)
+        }, 5000)
+        
+    }
 }
 
 const filteredPersons = persons.filter(person => 
@@ -102,19 +90,22 @@ const filteredPersons = persons.filter(person =>
   
 
 const toggleTrashOf = (id) => {
-  const url = `http://localhost:3001/persons/${id}`
      if(window.confirm("Delect "+`${id}`))
      {
-        axios.delete(url)
-  .then(response => {
-    console.log('Resource deleted successfully:',response.data)
-  })
-  .catch(error => {
+       personService
+       .deletepoint(id)
+      .then(initialPersons => {
+        console.log('Resource deleted successfully:',initialPersons.data)
+         personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+      })
+      })
+      .catch(error => {
     console.error('Error deleting resource:', error)
   })
      }else{alert("Delete have been cancled")}
-
-
 
   }
   
@@ -126,7 +117,8 @@ const toggleTrashOf = (id) => {
       <Filter searchQuery={searchQuery} setSearchQuery={setSearchQuery}/>
       
 
-
+      <Notification message={suessceMessage} />
+      <ReNotification message={errorMessage}/>
       <h2>add a new</h2>
       <PersonForm  addPerson={addPerson} newName={newName} newNumber={newNumber} setNewName={setNewName} setNewNumber={setNewNumber}/>
 
