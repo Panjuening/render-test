@@ -1,7 +1,7 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
-
 
 let persons = [
     { 
@@ -34,7 +34,7 @@ if (!keepSeconds) {    result = result.replace(/:\d{1,2}$/, "");  }
 return result;
 }
 
-const cors = require('cors')
+
 app.use(cors())
 app.use(morgan('tiny'))
 app.use(express.json())
