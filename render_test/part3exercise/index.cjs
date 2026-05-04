@@ -34,7 +34,7 @@ if (!keepSeconds) {    result = result.replace(/:\d{1,2}$/, "");  }
 return result;
 }
 
-
+app.use(express.static('dist'))
 app.use(cors())
 app.use(morgan('tiny'))
 app.use(express.json())
