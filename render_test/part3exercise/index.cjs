@@ -1,7 +1,68 @@
 const express = require('express')
 const morgan = require('morgan')
-const cors = require('cors')
 const app = express()
+
+const mongoose = require('mongoose')
+
+if (process.argv.length < 3) {
+  console.log('give password as argument')
+  process.exit(1)
+}
+
+const password = process.argv[2]
+
+const url = `mongodb+srv://fullstack:${password}@cluster0.xbheikr.mongodb.net/noteApp?retryWrites=true&w=majority&appName=Cluster0`
+
+
+mongoose.set('strictQuery',false)
+
+mongoose.connect(url)
+
+const personSchema = new mongoose.Schema({
+  name: String,
+  number: String,
+})
+
+noteSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString()
+    delete returnedObject._id
+    delete returnedObject.__v
+  }
+})
+
+const Person = mongoose.model('Person', personSchema)
+
+if(process.argv.length===3){
+console.log('phonebook:')
+Person.find({}).then(result =>{
+	result.forEach(person=>{
+		console.log(`${person.name} ${person.number}`)
+	})
+	mongoose.connection.close()
+})
+}else if(process.argv.length === 5)
+{
+	const name =process.argv[3]
+	const number=process.argv[4]
+
+	const person =new Person({
+	name:name,
+	number:number,
+	})
+
+person.save().then(result => {
+  console.log(`added ${result.name} number ${result.number} to phonebook`)
+  mongoose.connection.close()
+})
+}else
+{
+  console.log('Usage: node mongo.js <password> [<name> <number>]')
+  mongoose.connection.close()
+}
+
+
+
 
 let persons = [
     { 
@@ -35,7 +96,6 @@ return result;
 }
 
 app.use(express.static('dist'))
-app.use(cors())
 app.use(morgan('tiny'))
 app.use(express.json())
 
@@ -51,7 +111,9 @@ app.get('/api/info', (request, response,next) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Person.find({}).then(persons => {
+    response.json(persons)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -67,7 +129,8 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete('/api/persons/:id', (request, response) => {
   const id = request.params.id
-  persons = persons.filter(person => person.id !== id)
+  pers
+  ons = persons.filter(person => person.id !== id)
 
   response.status(204).end()
 })
