@@ -2,7 +2,7 @@ require('dotenv').config()
 const express = require('express')
 const Person = require('./models/person')
 const morgan = require('morgan')
-const { default: person } = require('./models/person')
+const { default: person } = require('./models/person.jsx')
 const app = express()
 
 
