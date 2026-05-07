@@ -1,8 +1,8 @@
 require('dotenv').config()
 const express = require('express')
-const Person = require('./models/person.jsx')
+const Person = require('./models/person')
 const morgan = require('morgan')
-const { default: person } = require('./models/person.jsx')
+const { default: person } = require('./models/person')
 const app = express()
 
 
