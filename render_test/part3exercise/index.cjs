@@ -1,91 +1,10 @@
+require('dotenv').config()
 const express = require('express')
+const Person = require('./models/person')
 const morgan = require('morgan')
+const { default: person } = require('./models/person')
 const app = express()
 
-const mongoose = require('mongoose')
-
-if (process.argv.length < 3) {
-  console.log('give password as argument')
-  process.exit(1)
-}
-
-const password = process.argv[2]
-
-const url = `mongodb+srv://fullstack:${password}@cluster0.xbheikr.mongodb.net/noteApp?retryWrites=true&w=majority&appName=Cluster0`
-
-
-mongoose.set('strictQuery',false)
-
-mongoose.connect(url)
-
-const personSchema = new mongoose.Schema({
-  name: String,
-  number: String,
-})
-
-noteSchema.set('toJSON', {
-  transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-  }
-})
-
-const Person = mongoose.model('Person', personSchema)
-
-if(process.argv.length===3){
-console.log('phonebook:')
-Person.find({}).then(result =>{
-	result.forEach(person=>{
-		console.log(`${person.name} ${person.number}`)
-	})
-	mongoose.connection.close()
-})
-}else if(process.argv.length === 5)
-{
-	const name =process.argv[3]
-	const number=process.argv[4]
-
-	const person =new Person({
-	name:name,
-	number:number,
-	})
-
-person.save().then(result => {
-  console.log(`added ${result.name} number ${result.number} to phonebook`)
-  mongoose.connection.close()
-})
-}else
-{
-  console.log('Usage: node mongo.js <password> [<name> <number>]')
-  mongoose.connection.close()
-}
-
-
-
-
-let persons = [
-    { 
-      id: "1",
-      name: "Arto Hellas", 
-      number: "040-123456"
-    },
-    { 
-      id: "2",
-      name: "Ada Lovelace", 
-      number: "39-44-5323523"
-    },
-    { 
-      id: "3",
-      name: "Dan Abramov", 
-      number: "12-43-234345"
-    },
-    { 
-      id: "4",
-      name: "Mary Poppendieck", 
-      number: "39-23-6423122"
-    }
-]
 
 function toLocalDateTime(timestamp, keepSeconds = true) {
 const date = new Date(Number(timestamp));    
@@ -116,16 +35,13 @@ app.get('/api/persons', (request, response) => {
   })
 })
 
-app.get('/api/persons/:id', (request, response) => {
-  const id = request.params.id
-  const person = persons.find(person => person.id === id)
 
-  if (person) {
+app.get('/api/persons/:id', (request, response) => {
+  Note.findById(request.params.id).then(person => {
     response.json(person)
-  } else {
-    response.status(404).end()
-  }
+  })
 })
+
 
 app.delete('/api/persons/:id', (request, response) => {
   const id = request.params.id
@@ -144,45 +60,36 @@ function getRandomInt(min,max) {
 
   
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response,next) => {
   const body = request.body
 
-  if (!body.name) {
+  if (!body.name || !body.number) {
     return response.status(400).json({
-      error: 'name missing'
+      error: 'name or number missing'
     })
   }
 
-  if (!body.number) {
-  return response.status(400).json({
-    error: 'number missing'
-  })
-}
+   Person.findOne({ name: body.name }).then(existingPerson => {
+    if (existingPerson) {
+      return response.status(400).json({ error: 'name must be unique' })
+    }})
 
-  const nameExists = persons.some(person => person.name === body.name);
-  if(nameExists)
-  {
-    return response.status(400).json({ error: 'name must be unique'} )
-  }
+  const person = new Person({
+      name: body.name,
+      number: body.number,
+    })
+
+     person.save()
+      .then(savedPerson => {
+        // 保存成功后才发送响应
+        response.json(savedPerson)
+      })
+      .catch(error => next(error)) // 错误传递给中间件
   
-
-  const person = {
-    name:body.name,
-    number:body.number,
-    id:getRandomInt(5,1000),
-  }
-
-app.get('/api/persons/', function (request, response) {
-  response.send('hello, world!')
-})
-
-  persons = persons.concat(person)
-
-  response.json(person)
 })
 
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
