@@ -6,11 +6,11 @@ const app = express()
 
 
 function toLocalDateTime(timestamp, keepSeconds = true) {
-const date = new Date(Number(timestamp));    
-if (isNaN(date.getTime())) return "无效时间";
-let result = date.toLocaleString();
-if (!keepSeconds) {    result = result.replace(/:\d{1,2}$/, "");  }  
-return result;
+  const date = new Date(Number(timestamp))
+  if (isNaN(date.getTime())) return '无效时间'
+  let result = date.toLocaleString()
+  if (!keepSeconds) {    result = result.replace(/:\d{1,2}$/, '')  }
+  return result
 }
 
 app.use(express.static('dist'))
@@ -18,7 +18,7 @@ app.use(morgan('tiny'))
 app.use(express.json())
 
 app.use((request, response, next) => {
-  const date = Date.now();
+  const date = Date.now()
   request.startTime=toLocalDateTime(date)
   next()
 })
@@ -44,28 +44,21 @@ app.get('/api/persons', (request, response, next) => {
 app.get('/api/persons/:id', (request, response,next) => {
   Person.findById(request.params.id).then(person => {
     if (person) {
-        response.json(person)
-      } else {
-        response.status(404).end()
-      }
+      response.json(person)
+    } else {
+      response.status(404).end()
+    }
   }).catch(error => next(error))
 })
 
 
 app.delete('/api/persons/:id', (request, response, next) => {
   Person.findByIdAndDelete(request.params.id)
-    .then(result => {
+    .then(() => {
       response.status(204).end()
     })
     .catch(error => next(error))
 })
-
-
-function getRandomInt(min,max) {
-  const minCeiled = Math.ceil(min);
-  const maxFloored = Math.floor(max);
-  return Math.floor(Math.random() * (maxFloored - minCeiled) + minCeiled); // 不包含最大值，包含最小值
-}
 
 app.put('/api/persons/:id', (request, response, next) => {
   const { name, number } = request.body
@@ -95,19 +88,19 @@ app.post('/api/persons', (request, response,next) => {
     })
   }
 
-   Person.findOne({ name: body.name }).then(existingPerson => {
+  Person.findOne({ name: body.name }).then(existingPerson => {
     if (existingPerson) {
       return response.status(400).json({ error: 'name must be unique' })
     }})
 
   const person = new Person({
-      name: body.name,
-      number: body.number,
-    })
+    name: body.name,
+    number: body.number,
+  })
 
-     return person.save().then(savedPerson => {
-        response.json(savedPerson)
-      })
+  return person.save().then(savedPerson => {
+    response.json(savedPerson)
+  })
     .catch(error => next(error))
 
 })
@@ -116,7 +109,7 @@ const errorHandler = (error, request, response, next) => {
   console.error(error.message)
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  }
   next(error)
 }
 
